@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import static viprammo.Constants.*;
 
 public class UDPSocketServerReceiver extends Thread {
 
@@ -23,8 +24,11 @@ public class UDPSocketServerReceiver extends Thread {
 			}
 
 			command_str = new String(packet.getData(), 0, packet.getLength()).replaceAll("\r\n", "");
-			name = command_str.split(",")[0];
-			cmd_char = command_str.split(",")[2];
+//			name = command_str.split(",")[0];
+//			cmd_char = command_str.split(",")[2];
+			String[] commands = command_str.split(",");
+			name = commands[0];
+			cmd_char = commands[2];
 			
 			TCPThreadWorker tcptw = ThreadList.getInstance().getWorkerByName(name);
 			
@@ -68,7 +72,7 @@ public class UDPSocketServerReceiver extends Thread {
 
 	public UDPSocketServerReceiver() {
 		try {
-			receiveSocket = new DatagramSocket(10500);
+			receiveSocket = new DatagramSocket(kUDPPort);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}

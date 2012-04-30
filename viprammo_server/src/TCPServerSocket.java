@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import static viprammo.Constants.*;
 
 public class TCPServerSocket extends Thread {
 
@@ -24,7 +25,7 @@ public class TCPServerSocket extends Thread {
 
 	public TCPServerSocket() {
 		try {
-			svsock = new ServerSocket(10001);
+			svsock = new ServerSocket(kTCPPort);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
