@@ -144,7 +144,7 @@ public class TCPThreadWorker extends Thread {
 	public void setMuki(String str) {
 		if (str.equals("w")) {
 			if (this.muki.equals("w1")) {
-				this.muki = "w1";
+				this.muki = "w2";
 			} else {
 				this.muki = "w1";
 			}
