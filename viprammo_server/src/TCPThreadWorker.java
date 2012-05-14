@@ -16,6 +16,7 @@ import viprammo.message.CommandMessage;
 import viprammo.message.Message;
 import viprammo.message.MessageHeader;
 import viprammo.message.MessageKIND;
+import viprammo.message.UserAuthMessage;
 import viprammo.message.UserInputMessage;
 
 
@@ -23,7 +24,9 @@ public class TCPThreadWorker extends Thread {
 
 	Socket socket;
 	OutputStream os;
-	ArrayList<Byte[]> data = new ArrayList<Byte[]>();
+	ObjectOutputStream oos;
+	
+	ArrayList<CommandMessage> data = new ArrayList<CommandMessage>();
 	public String name = null;
 	
 	int x = 300;
@@ -55,11 +58,13 @@ public class TCPThreadWorker extends Thread {
 		
 		try {
 			os = socket.getOutputStream();
+			oos = new ObjectOutputStream(os);
+			
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
 		
-		new InputStreamKanshi(is).start();	
+		new InputStreamKanshi(is, this).start();	
 		
 		try {
 			while (flg) {
@@ -68,13 +73,7 @@ public class TCPThreadWorker extends Thread {
 					
 					for (int i = 0; i < data.size(); i++) {
 						
-						byte[] d = new byte[data.get(i).length];
-						for (int j = 0; j < d.length; j++) {
-							d[j] = data.get(i)[j];
-						}
-						
-						os.write(d);
-						os.flush();
+						oos.writeObject(data.get(i));
 						data.remove(i);
 					}
 					
@@ -103,7 +102,9 @@ public class TCPThreadWorker extends Thread {
 	
 	class InputStreamKanshi extends Thread {
 		InputStream kis;
-		public InputStreamKanshi(InputStream kis_src) {kis = kis_src;}
+		TCPThreadWorker tcpw;
+		
+		public InputStreamKanshi(InputStream kis_src, TCPThreadWorker tcpt) {kis = kis_src; tcpw = tcpt;}
 		public void run() {
 			
 			ObjectInputStream ois = null;
@@ -117,26 +118,30 @@ public class TCPThreadWorker extends Thread {
 			int length = 0;
 			byte ident = 0;
 			
-			while (true) {
+			while (flg) {
 				
 				try {
 					
 					//読み込み
-					length = ois.readInt();
-					ident = ois.readByte();
-					System.out.println("length=" + length);
-					System.out.println("ident=" + ident);
-					
 					CommandMessage cmessage = (CommandMessage)ois.readObject();
 				
+					for (Message m : cmessage.getMessageList()) {
+						System.out.println(m.getUser());
+						System.out.println(m.getKIND());
+					}
 					//処理開始
-					TCPThreadWorker tcptw = ThreadList.getInstance().getWorkerByName(name);
+
+
 					
 					for (Message m : cmessage.getMessageList()) {
-						
+
 						switch (m.getKIND()) {
+						
 						case MessageKIND.KIND_USERINPUT:
+							TCPThreadWorker tcptw = ThreadList.getInstance().getWorkerByName(m.getUser());
 							UserInputMessage uimessage = (UserInputMessage)m;
+							
+							System.out.println("USER_INPUT:"+uimessage.getKeyChar());
 							char c = uimessage.getKeyChar();
 							
 							switch (c) {
@@ -163,6 +168,7 @@ public class TCPThreadWorker extends Thread {
 								cmm.setUser(tcptww.getNameM());
 								cmm.setX(tcptww.getX());
 								cmm.setY(tcptww.getY());
+								cmm.setMuki(tcptww.getMuki());
 								c_message_send.addMessage(cmm);
 								tcptww.send(c_message_send);
 							}
@@ -175,19 +181,30 @@ public class TCPThreadWorker extends Thread {
 							c_message_send.setMessageHeader(new MessageHeader());
 							c_message_send.addMessage(chatmessage);
 							
+							System.out.println("CHAT_MESSAGE:"+chatmessage.getMessage_str());
+							
 							for (TCPThreadWorker tcptww : ThreadList.getInstance().getThreadList()) {
 								tcptww.send(c_message_send);
 							}
 							
 							break;
+						case MessageKIND.KIND_GENERAL_LOGIN:
+							
+							
+							UserAuthMessage uam = (UserAuthMessage)m;
+							tcpw.name = uam.getUser();
+							System.out.println("USER_LOGIN:"+uam.getUser());
+							
 						}
 					}
 					
 					
 				} catch (IOException e) {
 					e.printStackTrace();
+					tcpw.flg = false;
 				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
+					tcpw.flg = false;
 				}
 			}
 		}
@@ -195,38 +212,9 @@ public class TCPThreadWorker extends Thread {
 	
 	public void send(CommandMessage cm) {
 		
-		ByteArrayOutputStream bytearray = null;
+		System.out.println("SEND:" + cm);
+		this.data.add(cm);
 		
-		try {
-			bytearray = new ByteArrayOutputStream();
-			ObjectOutputStream oss = new ObjectOutputStream(bytearray);
-			oss.writeObject(cm);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		byte[] buff = bytearray.toByteArray();
-		
-		int length = buff.length;
-		byte ident = 1;
-		ByteBuffer bf = ByteBuffer.allocate(5 + buff.length);
-		bf.putInt(length);
-		bf.put(ident);
-		bf.put(buff);
-		
-		this.send(bf.array());
-		
-	}
-	
-	public void send(byte[] data) {
-
-		System.out.println(new String(data));
-		Byte[] bd = new Byte[data.length];
-		for (int i = 0; i < data.length; i++) {
-			bd[i] = data[i];
-		}
-		this.data.add(bd);
-		
-		System.out.println("send iam = " + name);
 	}
 	
 	public TCPThreadWorker(Socket socket) {
