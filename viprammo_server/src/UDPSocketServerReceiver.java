@@ -3,6 +3,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
+import viprammo.message.CharacterModifMessage;
+import viprammo.message.CommandMessage;
+
 public class UDPSocketServerReceiver extends Thread {
 
 	DatagramSocket receiveSocket;
@@ -17,13 +20,13 @@ public class UDPSocketServerReceiver extends Thread {
 		StringBuilder sb = new StringBuilder();
 		
 		while (true) {
+			
 			try {
 				receiveSocket.receive(packet);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 
-			
 			command_str = new String(packet.getData(), 0, packet.getLength()).replaceAll("\r\n", "");
 			System.out.println(command_str);
 			name = command_str.split(",")[0];
@@ -32,6 +35,7 @@ public class UDPSocketServerReceiver extends Thread {
 
 			int count = 0;
 			if (method.equals("M")) {
+				
 				TCPThreadWorker tcptw = ThreadList.getInstance().getWorkerByName(name);
 				
 				if (cmd_char.equals("w")) {
@@ -47,15 +51,17 @@ public class UDPSocketServerReceiver extends Thread {
 				}
 				
 				for (TCPThreadWorker ttw : ThreadList.getInstance().getThreadList()) {
+
+					if (ttw.getNameM().equals(name)) {
+						//System.out.println(name);
+						ttw.setMuki(cmd_char);
+					}
 					
 					sb.append("M,");
 					sb.append(ttw.getNameM()); sb.append(",");
 					sb.append(ttw.getX()); sb.append(",");
 					sb.append(ttw.getY()); sb.append(",");
-					if (ttw.getNameM().equals(name)) {
-						//System.out.println(name);
-						ttw.setMuki(cmd_char);
-					}
+
 					sb.append(ttw.getMuki());
 					sb.append(",");
 					count++;
