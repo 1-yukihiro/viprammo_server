@@ -35,6 +35,8 @@ public class TCPThreadWorker extends Thread {
 	private boolean flg = true;
 	private String muki = "s0";
 	
+	private String character_prefix = "x";
+	
 	public void run() {
 
 		int rnum = 0;
@@ -124,7 +126,7 @@ public class TCPThreadWorker extends Thread {
 					
 					//読み込み
 					CommandMessage cmessage = (CommandMessage)ois.readObject();
-				
+					
 					for (Message m : cmessage.getMessageList()) {
 						System.out.println(m.getUser());
 						System.out.println(m.getKIND());
@@ -132,6 +134,8 @@ public class TCPThreadWorker extends Thread {
 					//処理開始
 
 
+					CommandMessage c_message_send = new CommandMessage();
+					c_message_send.setMessageHeader(new MessageHeader());
 					
 					for (Message m : cmessage.getMessageList()) {
 
@@ -162,30 +166,26 @@ public class TCPThreadWorker extends Thread {
 							tcptw.setMuki(String.valueOf(c));
 							
 							for (TCPThreadWorker tcptww : ThreadList.getInstance().getThreadList()) {
-								CommandMessage c_message_send = new CommandMessage();
-								c_message_send.setMessageHeader(new MessageHeader());
+								
 								CharacterModifMessage cmm = new CharacterModifMessage();
 								cmm.setUser(tcptww.getNameM());
 								cmm.setX(tcptww.getX());
 								cmm.setY(tcptww.getY());
 								cmm.setMuki(tcptww.getMuki());
+								cmm.setCharacter_prefix(tcptww.character_prefix);
 								c_message_send.addMessage(cmm);
-								tcptww.send(c_message_send);
+							
 							}
 							break;
 						case MessageKIND.KIND_CHAT_MESSAGE:
 							
 							ChatMessage chatmessage = (ChatMessage)m;
 							
-							CommandMessage c_message_send = new CommandMessage();
-							c_message_send.setMessageHeader(new MessageHeader());
 							c_message_send.addMessage(chatmessage);
 							
 							System.out.println("CHAT_MESSAGE:"+chatmessage.getMessage_str());
 							
-							for (TCPThreadWorker tcptww : ThreadList.getInstance().getThreadList()) {
-								tcptww.send(c_message_send);
-							}
+
 							
 							break;
 						case MessageKIND.KIND_GENERAL_LOGIN:
@@ -193,11 +193,17 @@ public class TCPThreadWorker extends Thread {
 							
 							UserAuthMessage uam = (UserAuthMessage)m;
 							tcpw.name = uam.getUser();
+							tcpw.character_prefix = uam.getCharPrefix();
+							
 							System.out.println("USER_LOGIN:"+uam.getUser());
 							
 						}
+						
 					}
 					
+					for (TCPThreadWorker tcptww : ThreadList.getInstance().getThreadList()) {
+						tcptww.send(c_message_send);
+					}
 					
 				} catch (IOException e) {
 					e.printStackTrace();
